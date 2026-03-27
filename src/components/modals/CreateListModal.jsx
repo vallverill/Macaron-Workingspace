@@ -18,8 +18,9 @@ export default function CreateListModal({ onClose }) {
       toast.success(`Đã tạo danh sách "${name.trim()}"`)
       // Navigate to the new list — it will appear in lists snapshot
       onClose()
-    } catch {
-      toast.error('Không thể tạo danh sách. Thử lại sau.')
+    } catch (err) {
+      console.error('createList error:', err)
+      toast.error(`Lỗi: ${err?.message || 'Thử lại sau.'}`)
     } finally {
       setLoading(false)
     }
