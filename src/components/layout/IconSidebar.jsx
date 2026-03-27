@@ -1,18 +1,19 @@
-import { HiHome, HiChatAlt2, HiBell, HiFolder } from 'react-icons/hi'
+import { HiHome, HiChatAlt2, HiBell, HiFolder, HiClipboardList } from 'react-icons/hi'
 import { HiEllipsisHorizontal } from 'react-icons/hi2'
 import { useApp } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 const NAV_ITEMS = [
-  { id: 'home',     icon: HiHome,     label: 'Trang chủ',  view: 'channel'  },
-  { id: 'dms',      icon: HiChatAlt2, label: 'Tin nhắn',   view: 'dm'       },
-  { id: 'activity', icon: HiBell,     label: 'Hoạt động',  view: 'activity' },
-  { id: 'files',    icon: HiFolder,   label: 'Tệp',        view: 'files'    },
+  { id: 'home',     icon: HiHome,          label: 'Trang chủ',  view: 'channel'  },
+  { id: 'dms',      icon: HiChatAlt2,      label: 'Tin nhắn',   view: 'dm'       },
+  { id: 'activity', icon: HiBell,          label: 'Hoạt động',  view: 'activity' },
+  { id: 'lists',    icon: HiClipboardList, label: 'Danh sách',  view: 'lists'    },
+  { id: 'files',    icon: HiFolder,        label: 'Tệp',        view: 'files'    },
 ]
 
 export default function IconSidebar() {
-  const { activeView, activeChannel, activeDmUser, openChannel, openDM, openFiles, openActivity, channels, users } = useApp()
+  const { activeView, activeChannel, activeDmUser, activeList, openChannel, openDM, openFiles, openActivity, openLists, channels, users, lists } = useApp()
   const { currentUser, logout } = useAuth()
 
   const initials = (currentUser?.displayName || currentUser?.email || 'U')
@@ -36,6 +37,8 @@ export default function IconSidebar() {
       } else if (users.length > 0) {
         openDM(users[0])
       }
+    } else if (view === 'lists') {
+      openLists(activeList || lists[0] || null)
     } else if (view === 'files') {
       openFiles()
     } else if (view === 'activity') {

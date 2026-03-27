@@ -5,6 +5,7 @@ import {
 } from 'react-icons/hi'
 import { useApp } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
+import CreateListModal from '../modals/CreateListModal'
 import toast from 'react-hot-toast'
 
 /* ─── helpers ─── */
@@ -230,6 +231,64 @@ function FilesPanel() {
 }
 
 /* ═══════════════════════════════════════════════════
+   PANEL: Lists view
+═══════════════════════════════════════════════════ */
+function ListsPanel() {
+  const { lists, activeList, setActiveList, openLists } = useApp()
+  const [showCreate, setShowCreate] = useState(false)
+
+  function selectList(list) {
+    setActiveList(list)
+    openLists(list)
+  }
+
+  return (
+    <>
+      <div className="px-4 py-3 border-b border-white/10 shrink-0 flex items-center justify-between">
+        <span className="text-white font-bold text-base">Danh sách</span>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="text-white/60 hover:text-white transition-colors"
+          title="Tạo danh sách mới"
+        >
+          <HiPlus className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
+        {lists.length === 0 && (
+          <div className="px-4 py-3 text-white/40 text-xs text-center">
+            <p className="mb-2">Chưa có danh sách nào</p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="text-white/60 hover:text-white underline"
+            >
+              Tạo danh sách đầu tiên
+            </button>
+          </div>
+        )}
+        {lists.map((list) => (
+          <button
+            key={list.id}
+            onClick={() => selectList(list)}
+            className={`w-full flex items-center gap-2 px-4 py-1.5 text-sm rounded-md mx-1 transition-colors ${
+              activeList?.id === list.id
+                ? 'bg-macaron-sidebar-active text-white font-semibold'
+                : 'text-white/70 hover:bg-macaron-sidebar-hover hover:text-white'
+            }`}
+          >
+            <HiClipboardList className="w-4 h-4 shrink-0" />
+            <span className="truncate flex-1 text-left">{list.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {showCreate && <CreateListModal onClose={() => setShowCreate(false)} />}
+    </>
+  )
+}
+
+/* ═══════════════════════════════════════════════════
    PANEL: Activity view
 ═══════════════════════════════════════════════════ */
 function ActivityPanel() {
@@ -281,6 +340,7 @@ export default function LeftPanel() {
     <div className="w-60 bg-macaron-navy flex flex-col shrink-0 overflow-hidden">
       {activeView === 'channel'  && <ChannelPanel />}
       {activeView === 'dm'       && <DMPanel />}
+      {activeView === 'lists'    && <ListsPanel />}
       {activeView === 'files'    && <FilesPanel />}
       {activeView === 'activity' && <ActivityPanel />}
     </div>

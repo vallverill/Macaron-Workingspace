@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import {
   collection, doc, onSnapshot, addDoc, query,
   orderBy, serverTimestamp, getDocs, setDoc, where,
-  updateDoc,
+  updateDoc, deleteDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from './AuthContext'
@@ -28,6 +28,8 @@ export function AppProvider({ children }) {
   const [showCreateChannel, setShowCreateChannel] = useState(false)
   // unread: map of channelId -> lastReadAt (ms timestamp)
   const [channelReads, setChannelReads]   = useState({})
+  const [lists, setLists]                 = useState([])
+  const [activeList, setActiveList]       = useState(null)
 
   // Seed default channels if they don't exist
   useEffect(() => {
@@ -66,6 +68,16 @@ export function AppProvider({ children }) {
     if (!currentUser) return
     const unsub = onSnapshot(collection(db, 'users'), (snap) => {
       setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((u) => u.id !== currentUser.uid))
+    })
+    return unsub
+  }, [currentUser])
+
+  // Listen to lists
+  useEffect(() => {
+    if (!currentUser) return
+    const q = query(collection(db, 'lists'), orderBy('createdAt', 'asc'))
+    const unsub = onSnapshot(q, (snap) => {
+      setLists(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
     })
     return unsub
   }, [currentUser])
@@ -162,12 +174,47 @@ export function AppProvider({ children }) {
   function openFiles()    { setActiveView('files')    }
   function openActivity() { setActiveView('activity') }
 
+  function openLists(list = null) {
+    if (list) setActiveList(list)
+    setActiveChannel(null)
+    setActiveDmUser(null)
+    setActiveView('lists')
+  }
+
+  async function createList(name, description = '') {
+    const ref = await addDoc(collection(db, 'lists'), {
+      name,
+      description,
+      createdAt: serverTimestamp(),
+      createdBy: currentUser.uid,
+    })
+    return ref.id
+  }
+
+  async function addListItem(listId, data) {
+    await addDoc(collection(db, 'lists', listId, 'items'), {
+      ...data,
+      createdAt: serverTimestamp(),
+      createdBy: currentUser.uid,
+    })
+  }
+
+  async function updateListItem(listId, itemId, data) {
+    await updateDoc(doc(db, 'lists', listId, 'items', itemId), data)
+  }
+
+  async function deleteListItem(listId, itemId) {
+    await deleteDoc(doc(db, 'lists', listId, 'items', itemId))
+  }
+
   const value = {
     channels, users, activeView, activeChannel, activeDmUser,
     showCreateChannel, setShowCreateChannel,
     channelReads, markChannelRead,
     sendChannelMessage, sendDM, createChannel, updateChannelDescription,
     openChannel, openDM, openFiles, openActivity,
+    lists, activeList, setActiveList, openLists,
+    createList, addListItem, updateListItem, deleteListItem,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
