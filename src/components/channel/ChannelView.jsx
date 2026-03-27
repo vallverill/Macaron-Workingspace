@@ -11,7 +11,7 @@ import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 
 export default function ChannelView() {
-  const { activeChannel, sendChannelMessage, markChannelRead } = useApp()
+  const { activeChannel, sendChannelMessage } = useApp()
   const { currentUser } = useAuth()
   const [messages, setMessages] = useState([])
 
@@ -24,8 +24,6 @@ export default function ChannelView() {
     )
     const unsub = onSnapshot(q, (snap) => {
       setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-      // Auto-mark as read whenever new messages arrive while viewing this channel
-      markChannelRead(activeChannel.id)
     })
     return unsub
   }, [activeChannel?.id])

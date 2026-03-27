@@ -110,8 +110,8 @@ export function AppProvider({ children }) {
       msgData.fileType = fileData.type
     }
     await addDoc(collection(db, 'channels', channelId, 'messages'), msgData)
-    // Update lastMessageAt so other users see unread badge
-    await updateDoc(doc(db, 'channels', channelId), { lastMessageAt: serverTimestamp() })
+    // Best-effort: update lastMessageAt for unread badge (non-blocking)
+    updateDoc(doc(db, 'channels', channelId), { lastMessageAt: serverTimestamp() }).catch(() => {})
   }
 
   async function sendDM(targetUserId, text, fileData = null) {

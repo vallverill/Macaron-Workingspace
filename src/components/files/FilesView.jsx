@@ -1,4 +1,5 @@
 import { HiFolder, HiDocumentText, HiClipboardList, HiPlus } from 'react-icons/hi'
+import toast from 'react-hot-toast'
 
 const TEMPLATES = [
   {
@@ -29,7 +30,10 @@ export default function FilesView() {
           <HiFolder className="w-5 h-5 text-gray-500" />
           <h2 className="font-bold text-gray-900 text-base">Tệp & Tài liệu</h2>
         </div>
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-macaron-navy text-white text-sm font-medium rounded-lg hover:bg-macaron-navy-hover transition-colors">
+        <button
+          onClick={() => toast('Tính năng đang phát triển 🚧', { icon: '🛠️' })}
+          className="flex items-center gap-1 px-3 py-1.5 bg-macaron-navy text-white text-sm font-medium rounded-lg hover:bg-macaron-navy-hover transition-colors"
+        >
           <HiPlus className="w-4 h-4" />
           <span>Tạo mới</span>
         </button>
@@ -43,6 +47,7 @@ export default function FilesView() {
             {TEMPLATES.map((t) => (
               <button
                 key={t.title}
+                onClick={() => toast('Tính năng đang phát triển 🚧', { icon: '🛠️' })}
                 className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:border-macaron-navy hover:bg-gray-50 transition-colors text-left group"
               >
                 <div className={`w-10 h-10 rounded-lg ${t.color} flex items-center justify-center shrink-0`}>

@@ -12,7 +12,7 @@ const NAV_ITEMS = [
 ]
 
 export default function IconSidebar() {
-  const { activeView, openFiles, openActivity } = useApp()
+  const { activeView, activeChannel, activeDmUser, openChannel, openDM, openFiles, openActivity, channels, users } = useApp()
   const { currentUser, logout } = useAuth()
 
   const initials = (currentUser?.displayName || currentUser?.email || 'U')
@@ -23,9 +23,24 @@ export default function IconSidebar() {
     .toUpperCase()
 
   function handleNav(view) {
-    if (view === 'files')    openFiles()
-    if (view === 'activity') openActivity()
-    // channel & dm handled by LeftPanel clicks
+    if (view === 'channel') {
+      // Go back to the last active channel, or first channel
+      if (activeChannel) {
+        openChannel(activeChannel)
+      } else if (channels.length > 0) {
+        openChannel(channels[0])
+      }
+    } else if (view === 'dm') {
+      if (activeDmUser) {
+        openDM(activeDmUser)
+      } else if (users.length > 0) {
+        openDM(users[0])
+      }
+    } else if (view === 'files') {
+      openFiles()
+    } else if (view === 'activity') {
+      openActivity()
+    }
   }
 
   async function handleLogout() {
