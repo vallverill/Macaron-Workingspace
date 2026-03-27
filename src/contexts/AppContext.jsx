@@ -131,15 +131,19 @@ export function AppProvider({ children }) {
     await addDoc(collection(db, 'dms', dmId, 'messages'), msgData)
   }
 
-  async function createChannel(name, description) {
+  async function createChannel(name, description, isPrivate = false) {
     name = name.toLowerCase().replace(/\s+/g, '-')
     await addDoc(collection(db, 'channels'), {
       name,
       description,
       createdAt: serverTimestamp(),
       createdBy: currentUser.uid,
-      isPrivate: false,
+      isPrivate,
     })
+  }
+
+  async function updateChannelDescription(channelId, description) {
+    await updateDoc(doc(db, 'channels', channelId), { description })
   }
 
   function openChannel(channel) {
@@ -162,7 +166,7 @@ export function AppProvider({ children }) {
     channels, users, activeView, activeChannel, activeDmUser,
     showCreateChannel, setShowCreateChannel,
     channelReads, markChannelRead,
-    sendChannelMessage, sendDM, createChannel,
+    sendChannelMessage, sendDM, createChannel, updateChannelDescription,
     openChannel, openDM, openFiles, openActivity,
   }
 
