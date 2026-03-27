@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
-import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore'
+import {
+  collection, query, orderBy, onSnapshot, limit,
+  doc, updateDoc, arrayUnion, arrayRemove,
+} from 'firebase/firestore'
 import { HiHashtag, HiUsers } from 'react-icons/hi'
 import { db } from '../../firebase'
 import { useApp } from '../../contexts/AppContext'
+import { useAuth } from '../../contexts/AuthContext'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 
 export default function ChannelView() {
-  const { activeChannel, sendChannelMessage } = useApp()
+  const { activeChannel, sendChannelMessage, markChannelRead } = useApp()
+  const { currentUser } = useAuth()
   const [messages, setMessages] = useState([])
 
   useEffect(() => {
@@ -15,13 +20,26 @@ export default function ChannelView() {
     const q = query(
       collection(db, 'channels', activeChannel.id, 'messages'),
       orderBy('createdAt', 'asc'),
-      limit(200)
+      limit(200),
     )
     const unsub = onSnapshot(q, (snap) => {
       setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      // Auto-mark as read whenever new messages arrive while viewing this channel
+      markChannelRead(activeChannel.id)
     })
     return unsub
   }, [activeChannel?.id])
+
+  async function handleReact(messageId, emoji) {
+    const msgRef = doc(db, 'channels', activeChannel.id, 'messages', messageId)
+    const msg = messages.find((m) => m.id === messageId)
+    const alreadyReacted = (msg?.reactions?.[emoji] || []).includes(currentUser.uid)
+    await updateDoc(msgRef, {
+      [`reactions.${emoji}`]: alreadyReacted
+        ? arrayRemove(currentUser.uid)
+        : arrayUnion(currentUser.uid),
+    })
+  }
 
   if (!activeChannel) {
     return (
@@ -63,10 +81,10 @@ export default function ChannelView() {
         </div>
       )}
 
-      <MessageList messages={messages} />
+      <MessageList messages={messages} onReact={handleReact} />
 
       <MessageInput
-        onSend={(text) => sendChannelMessage(activeChannel.id, text)}
+        onSend={(text, fileData) => sendChannelMessage(activeChannel.id, text, fileData)}
         placeholder={`Nhắn tin đến #${activeChannel.name}`}
       />
     </div>

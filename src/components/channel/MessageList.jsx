@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import MessageItem from './MessageItem'
 
-export default function MessageList({ messages }) {
+export default function MessageList({ messages, onReact }) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -19,7 +19,12 @@ export default function MessageList({ messages }) {
   return (
     <div className="flex-1 overflow-y-auto scrollbar-content py-4">
       {messages.map((msg, i) => (
-        <MessageItem key={msg.id} message={msg} prevMessage={messages[i - 1] ?? null} />
+        <MessageItem
+          key={msg.id}
+          message={msg}
+          prevMessage={messages[i - 1] ?? null}
+          onReact={onReact}
+        />
       ))}
       <div ref={bottomRef} />
     </div>

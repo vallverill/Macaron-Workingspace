@@ -6,10 +6,18 @@ export default function LeftPanel() {
   const {
     channels, users, activeChannel, activeDmUser,
     openChannel, openDM, setShowCreateChannel,
+    channelReads,
   } = useApp()
 
   const [channelsOpen, setChannelsOpen] = useState(true)
   const [dmsOpen, setDmsOpen]           = useState(true)
+
+  function hasUnread(ch) {
+    if (activeChannel?.id === ch.id) return false
+    const lastMsg  = ch.lastMessageAt?.toMillis?.() ?? 0
+    const lastRead = channelReads[ch.id] ?? 0
+    return lastMsg > lastRead && lastMsg > 0
+  }
 
   return (
     <div className="w-60 bg-macaron-navy flex flex-col shrink-0 overflow-hidden">
@@ -48,21 +56,30 @@ export default function LeftPanel() {
 
           {channelsOpen && (
             <ul className="mt-0.5">
-              {channels.map((ch) => (
-                <li key={ch.id}>
-                  <button
-                    onClick={() => openChannel(ch)}
-                    className={`w-full flex items-center gap-2 px-4 py-1.5 text-sm rounded-md mx-1 transition-colors ${
-                      activeChannel?.id === ch.id
-                        ? 'bg-macaron-sidebar-active text-white font-semibold'
-                        : 'text-white/70 hover:bg-macaron-sidebar-hover hover:text-white'
-                    }`}
-                  >
-                    <HiHashtag className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{ch.name}</span>
-                  </button>
-                </li>
-              ))}
+              {channels.map((ch) => {
+                const isActive  = activeChannel?.id === ch.id
+                const unread    = hasUnread(ch)
+                return (
+                  <li key={ch.id}>
+                    <button
+                      onClick={() => openChannel(ch)}
+                      className={`w-full flex items-center gap-2 px-4 py-1.5 text-sm rounded-md mx-1 transition-colors ${
+                        isActive
+                          ? 'bg-macaron-sidebar-active text-white font-semibold'
+                          : 'text-white/70 hover:bg-macaron-sidebar-hover hover:text-white'
+                      }`}
+                    >
+                      <HiHashtag className="w-4 h-4 shrink-0" />
+                      <span className={`truncate flex-1 text-left ${unread ? 'font-semibold text-white' : ''}`}>
+                        {ch.name}
+                      </span>
+                      {unread && (
+                        <span className="w-2 h-2 rounded-full bg-white shrink-0" />
+                      )}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import {
   collection, doc, onSnapshot, addDoc, query,
   orderBy, serverTimestamp, getDocs, setDoc, where,
+  updateDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from './AuthContext'
@@ -21,10 +22,12 @@ export function AppProvider({ children }) {
   const { currentUser } = useAuth()
   const [channels, setChannels]           = useState([])
   const [users, setUsers]                 = useState([])
-  const [activeView, setActiveView]       = useState('channel') // 'channel' | 'dm' | 'files' | 'activity'
+  const [activeView, setActiveView]       = useState('channel')
   const [activeChannel, setActiveChannel] = useState(null)
   const [activeDmUser, setActiveDmUser]   = useState(null)
   const [showCreateChannel, setShowCreateChannel] = useState(false)
+  // unread: map of channelId -> lastReadAt (ms timestamp)
+  const [channelReads, setChannelReads]   = useState({})
 
   // Seed default channels if they don't exist
   useEffect(() => {
@@ -67,25 +70,65 @@ export function AppProvider({ children }) {
     return unsub
   }, [currentUser])
 
-  async function sendChannelMessage(channelId, text) {
-    if (!text.trim()) return
-    await addDoc(collection(db, 'channels', channelId, 'messages'), {
-      text: text.trim(),
-      userId: currentUser.uid,
-      userName: currentUser.displayName || currentUser.email,
-      createdAt: serverTimestamp(),
+  // Listen to unread reads for current user
+  useEffect(() => {
+    if (!currentUser) return
+    const readRef = doc(db, 'userReads', currentUser.uid)
+    const unsub = onSnapshot(readRef, (snap) => {
+      if (snap.exists()) {
+        const channels = snap.data().channels || {}
+        // Convert Firestore Timestamps to ms numbers
+        const converted = {}
+        for (const [id, ts] of Object.entries(channels)) {
+          converted[id] = ts?.toMillis?.() ?? ts ?? 0
+        }
+        setChannelReads(converted)
+      }
     })
+    return unsub
+  }, [currentUser])
+
+  async function markChannelRead(channelId) {
+    if (!currentUser) return
+    // Optimistic local update
+    setChannelReads((prev) => ({ ...prev, [channelId]: Date.now() }))
+    const readRef = doc(db, 'userReads', currentUser.uid)
+    await setDoc(readRef, { channels: { [channelId]: serverTimestamp() } }, { merge: true })
   }
 
-  async function sendDM(targetUserId, text) {
-    if (!text.trim()) return
-    const dmId = [currentUser.uid, targetUserId].sort().join('_')
-    await addDoc(collection(db, 'dms', dmId, 'messages'), {
+  async function sendChannelMessage(channelId, text, fileData = null) {
+    if (!text.trim() && !fileData) return
+    const msgData = {
       text: text.trim(),
       userId: currentUser.uid,
       userName: currentUser.displayName || currentUser.email,
       createdAt: serverTimestamp(),
-    })
+    }
+    if (fileData) {
+      msgData.fileUrl  = fileData.url
+      msgData.fileName = fileData.name
+      msgData.fileType = fileData.type
+    }
+    await addDoc(collection(db, 'channels', channelId, 'messages'), msgData)
+    // Update lastMessageAt so other users see unread badge
+    await updateDoc(doc(db, 'channels', channelId), { lastMessageAt: serverTimestamp() })
+  }
+
+  async function sendDM(targetUserId, text, fileData = null) {
+    if (!text.trim() && !fileData) return
+    const dmId = [currentUser.uid, targetUserId].sort().join('_')
+    const msgData = {
+      text: text.trim(),
+      userId: currentUser.uid,
+      userName: currentUser.displayName || currentUser.email,
+      createdAt: serverTimestamp(),
+    }
+    if (fileData) {
+      msgData.fileUrl  = fileData.url
+      msgData.fileName = fileData.name
+      msgData.fileType = fileData.type
+    }
+    await addDoc(collection(db, 'dms', dmId, 'messages'), msgData)
   }
 
   async function createChannel(name, description) {
@@ -103,6 +146,7 @@ export function AppProvider({ children }) {
     setActiveChannel(channel)
     setActiveDmUser(null)
     setActiveView('channel')
+    markChannelRead(channel.id)
   }
 
   function openDM(user) {
@@ -117,6 +161,7 @@ export function AppProvider({ children }) {
   const value = {
     channels, users, activeView, activeChannel, activeDmUser,
     showCreateChannel, setShowCreateChannel,
+    channelReads, markChannelRead,
     sendChannelMessage, sendDM, createChannel,
     openChannel, openDM, openFiles, openActivity,
   }

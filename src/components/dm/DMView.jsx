@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore'
+import {
+  collection, query, orderBy, onSnapshot, limit,
+  doc, updateDoc, arrayUnion, arrayRemove,
+} from 'firebase/firestore'
 import { db } from '../../firebase'
 import { useApp } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -24,13 +27,24 @@ export default function DMView() {
     const q = query(
       collection(db, 'dms', dmId, 'messages'),
       orderBy('createdAt', 'asc'),
-      limit(200)
+      limit(200),
     )
     const unsub = onSnapshot(q, (snap) => {
       setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
     })
     return unsub
   }, [dmId])
+
+  async function handleReact(messageId, emoji) {
+    const msgRef = doc(db, 'dms', dmId, 'messages', messageId)
+    const msg = messages.find((m) => m.id === messageId)
+    const alreadyReacted = (msg?.reactions?.[emoji] || []).includes(currentUser.uid)
+    await updateDoc(msgRef, {
+      [`reactions.${emoji}`]: alreadyReacted
+        ? arrayRemove(currentUser.uid)
+        : arrayUnion(currentUser.uid),
+    })
+  }
 
   if (!activeDmUser) {
     return (
@@ -73,10 +87,10 @@ export default function DMView() {
         </div>
       )}
 
-      <MessageList messages={messages} />
+      <MessageList messages={messages} onReact={handleReact} />
 
       <MessageInput
-        onSend={(text) => sendDM(activeDmUser.id, text)}
+        onSend={(text, fileData) => sendDM(activeDmUser.id, text, fileData)}
         placeholder={`Nhắn tin đến ${name}`}
       />
     </div>
